@@ -23,7 +23,7 @@ input[type="submit"] {
   font-size: 16px;
   cursor: pointer;
   transition: background-color 0.2s;
-  background-color: rgba(137, 43, 226, 0.55);
+  background-color: #892be28c;
 }
 
 input[type="submit"]:hover,
@@ -133,7 +133,7 @@ label {
   color: #ffffff;
 }
 
-input[type="number"],
+input[type="number"], input[type="text"], input[type="color"],
 select {
   padding: 8px 10px;
   width: 200px;
@@ -141,7 +141,11 @@ select {
   font-size: 14px;
 }
 
-input[type="number"]:focus,
+input[type="color"]{
+  padding: 5px;
+}
+
+input[type="number"]:focus, input[type="text"], input[type="color"],
 select:focus {
   outline: none;
   border-color: #007bff;
@@ -164,4 +168,11 @@ select:focus {
 
 .header h3{
   margin: 0;
+}
+
+ .MuiChartsAxis-tickLabel tspan{
+  fill: rgb(255, 255, 255);
+ }
+.MuiChartsLegend-label{
+  color: white!important;
 }

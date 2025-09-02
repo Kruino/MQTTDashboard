@@ -4,56 +4,25 @@ import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import WaterDropIcon from "@mui/icons-material/WaterDrop";
 import DeviceThermostatIcon from '@mui/icons-material/DeviceThermostat';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import RemoveModeratorIcon from '@mui/icons-material/RemoveModerator';
+
 
 import { parseJwt } from "../utils/jwt";
 
-import mqtt from "mqtt";
 import "../App.css";
-import { Refresh } from "@mui/icons-material";
 
 function MainPage() {
-  const [devices, setDevices] = useState([
-    {
-      Device: {
-        DeviceID: "Test",
-        DeviceName: "Test Device (Template)",
-        IsFahrenheit: false,
-        LightTime: 10,
-        TemperatureTime: 10,
-        Location: 1,
-      },
-      unverified: false,
-      data: { light: { lightlevel: 1023 }, temp: { temperature: 22, humidity: 50 } },
-    },
-    {
-      Device: {
-        DeviceID: "Test2",
-        DeviceName: "Test Device 2 (Template)",
-        IsFahrenheit: true,
-        LightTime: 10,
-        TemperatureTime: 10,
-        Location: 1,
-      },
-      unverified: true,
-      data: { light: { lightlevel: 1123 }, temp: { temperature: 28, humidity: 52 } },
-    },
-  ]);
-
-  
-
+  const [devices, setDevices] = useState([]);
 
   const [locations, setLocations] = useState([]);
   const [openDevices, setOpenDevices] = useState({});
-  const clientRef = useRef(null);
-  const [username, setUsername] = useState(null);
 
-  useEffect(() => {
-    const token = localStorage.getItem("authToken"); // or wherever you store it
-    if (token) {
-      const payload = parseJwt(token);
-      setUsername(payload?.username || null);
-    }
-  }, []);
+  const clientRef = useRef(null);
+  const [locationName, setLocationName]  = useState("");
+
+  
+
 
   useEffect(() => {
     fetch("http://localhost:3000/locations")
@@ -83,14 +52,20 @@ function MainPage() {
 
   const applyChanges = (device) => {
     console.log(device);
-    clientRef.current.publish(device.DeviceID + "/Settings/Update", JSON.stringify(device));
+    const json = JSON.stringify({
+      Topic: device.DeviceID + "/Settings/Update",
+      Msg: device
+    });
+
+    console.log(json);
+    clientRef.current.send(json);
   };
 
   const verifyDevice = (device) => {
     if (confirm(`Are you sure you want to verify device (${device.DeviceID})?`)) {
       fetch("http://localhost:3000/device", {
         method: "POST",
-        body: JSON.stringify({ DeviceID: device.DeviceID }),
+        body: JSON.stringify({ DeviceID: device.DeviceID, LocationID: device.Location }),
         headers: {
           "Content-Type": "application/json; charset=UTF-8",
           Authorization: "Basic " + localStorage.getItem("authToken"),
@@ -102,10 +77,93 @@ function MainPage() {
               d.Device.DeviceID === device.DeviceID ? { Device: d.Device, unverified: false } : d
             )
           );
+          const json = JSON.stringify({
+            Topic: device.DeviceID + "/Device/Verified",
+            Msg: "ping"
+          });
+
+          clientRef.current.send(json);
         }
       });
     }
   };
+
+    const unverifyDevice = (device) => {
+    if (confirm(`Are you sure you want to unverify device (${device.DeviceID})?`)) {
+      fetch("http://localhost:3000/device/unverify", {
+        method: "POST",
+        body: JSON.stringify({ DeviceID: device.DeviceID }),
+        headers: {
+          "Content-Type": "application/json; charset=UTF-8",
+          Authorization: "Basic " + localStorage.getItem("authToken"),
+        },
+      }).then((res) => {
+        if (res.status === 200) {
+          setDevices((prev) =>
+            prev.map((d) =>
+              d.Device.DeviceID === device.DeviceID ? { Device: d.Device, unverified: true } : d
+            )
+          );
+          const json = JSON.stringify({
+            Topic: device.DeviceID + "/Device/Unverified",
+            Msg: "ping"
+          });
+
+          clientRef.current.send(json);
+        }
+      });
+    }
+  };
+
+
+  const createLocation = async () => {
+    var input = document.getElementById("Location-Name");
+    if(input.value == null || input.value == "")
+      return;
+
+    if (confirm(`Are you sure you want to create location (${input.value})?`)) {
+      fetch("http://localhost:3000/locations", {
+        method: "POST",
+        body: JSON.stringify({ name: input.value }),
+        headers: {
+          "Content-Type": "application/json; charset=UTF-8",
+          Authorization: "Basic " + localStorage.getItem("authToken"),
+        },
+      }).then((res) => {
+
+        if(res.status != 200){
+          res.json().then((json) => confirm(json.error))
+        }else{
+          confirm("Location created!");
+        }
+      });
+    }
+
+  };
+
+  const hexToRGB565 = (hex) => {
+    // Remove the leading #
+    hex = hex.replace(/^#/, '');
+
+    // Parse R, G, B (0–255)
+    let r = parseInt(hex.substring(0, 2), 16);
+    let g = parseInt(hex.substring(2, 4), 16);
+    let b = parseInt(hex.substring(4, 6), 16);
+
+    // Convert to 16-bit RGB565
+    let rgb565 = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
+
+    // Return as hex string (0xXXXX format)
+    return "0x" + rgb565.toString(16).padStart(4, "0").toUpperCase();
+  }
+
+const rgb565ToHex = (rgb565) =>  {
+  const r = ((rgb565 >> 11) & 0x1F) << 3;
+  const g = ((rgb565 >> 5) & 0x3F) << 2;
+  const b = (rgb565 & 0x1F) << 3;
+  // Return #RRGGBB string
+  return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+}
 
   const formatTemperature = (temp, isFahrenheit) =>
     isFahrenheit ? (temp * 9) / 5 + 32 : temp;
@@ -114,102 +172,136 @@ function MainPage() {
     document.title = 'Dashboard';
   }, []);
 
-  useEffect(() => {
-    const client = mqtt.connect("ws://192.168.1.131:8080", mqttSettings);
-    clientRef.current = client;
+useEffect(() => {
+  const token = localStorage.getItem("authToken"); // JWT from login
+  const ws = new WebSocket(`ws://localhost:3000?token=${token}`);
+  clientRef.current = ws;
 
-    client.on("connect", () => {
-      console.log("Connected to MQTT broker");
-      client.connected &&
-        client.publish("device/Online/request", "ping", {}, (err) =>
-          err ? console.error("Publish error:", err) : console.log("Request sent")
-        );
-    });
+  ws.onopen = () => {
+    console.log("Connected to WS server");
 
-    client.on("message", (topic, payload) => {
-      const data = JSON.parse(payload.toString());
-
-      if (topic === "device/Online") {
-        fetch(`http://localhost:3000/device/verify?DeviceID=${data.DeviceID}`).then((res) => {
-          const unverified = res.status !== 200;
-          setDevices((prev) => {
-            if (prev.some((d) => d.Device.DeviceID === data.DeviceID)) return prev;
-            return [...prev, { Device: data, unverified }];
-          });
-        });
-      }
-
-      if (topic === "LightLevel") {
-        setDevices((prev) =>
-          prev.map((d) =>
-            d.Device.DeviceID === data.DeviceID ? { ...d, data: { ...d.data, light: data } } : d
-          )
-        );
-      }
-
-      if (topic === "Temperature") {
-        setDevices((prev) =>
-          prev.map((d) =>
-            d.Device.DeviceID === data.DeviceID ? { ...d, data: { ...d.data, temp: data } } : d
-          )
-        );
-      }
-    });
-
-    client.on("error", (err) => console.error("MQTT error:", err));
-
-    return () => client.end();
-  }, []);
-
-
- const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    clientRef?.current?.end?.(true);
-    window.location.href = "/"
+    ws.send('{"Topic": "device/Update/request", "Msg": "ping"}')
   };
-  
+
+  ws.onmessage = (event) => {
+    const { topic, message } = JSON.parse(event.data);
+
+    console.log("WS message:", topic, message);
+
+    // // Handle different topics
+if (topic === "device/Update") {
+  console.log("test");
+  fetch(`http://localhost:3000/device/verify`, {
+    method: "POST",
+    body: JSON.stringify({ DeviceID: message.DeviceID }),
+    headers: {
+      "Content-Type": "application/json; charset=UTF-8",
+      Authorization: "Basic " + localStorage.getItem("authToken"),
+    },
+  }).then(async (res) => {
+    const unverified = res.status !== 200;
+
+    setDevices((prev) => {
+      let exists = false;
+
+      const updated = prev.map((d) => {
+        if (d.Device.DeviceID === message.DeviceID) {
+          exists = true;
+          return {
+            Device: {
+              ...d.Device, // keep existing fields
+              data: message.data, // update the data field
+            },
+            unverified,
+          }; 
+        }
+        return d;
+      });
+
+      // if not found, add new
+      if (!exists) {
+        updated.push({ Device: message, unverified });
+      }
+
+      return updated;
+    }, []);
+  });
+}
+  };
+
+  ws.onerror = (err) => console.error("WS error:", err);
+  ws.onclose = () => console.log("WS closed");
+
+  return () => ws.close();
+}, []);
+
+
+
   return (
     <div className="p-6">
-      <div className="header dt-background">
-        <h3>Hello {username}!</h3>
-        <button onClick={handleLogout}>Logout</button>
-      </div>
+
+
+
+      <div>
+        <div>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+
+              createLocation()
+            }}>
+              <label htmlFor="nameInput">Location Name</label>
+              <input id="Location-Name" key={"locationName"}/>
+
+              <input type="submit" value="Create location"/>
+            </form>
+        </div>
 
 
       <ul className="device-list">
 
 
         {devices.map((deviceEntry, i) => {
-          const { Device, unverified, data } = deviceEntry;
+          const { Device, unverified } = deviceEntry;
           return (
             <li key={i}>
               <div className="device-card">
                 <div>
                   <div className="device-header">
+                    <button onClick={() => {
+                        const json = JSON.stringify({
+                          Topic: Device.DeviceID + "/Device/Restart",
+                          Msg: "ping"
+                        });
+                      clientRef.current.send(json)
+                    }} style={{padding: 5, background: "#ebb734"}}><RestartAltIcon /></button>
+                         <button onClick={() => {
+                        unverifyDevice(Device);
+                    }} style={{padding: 5, background: "#a60707"}}><RemoveModeratorIcon /></button>
                     <h3>{Device.DeviceName}</h3>
                     <strong className="device-id">Device ID: {Device.DeviceID}</strong>
                   </div>
+                  
                   <div className="device-stats">
                       <div className="device-stats">
                         <WaterDropIcon style={{ color: "lightblue", height: 20 }} />
-                        <strong>{data.temp.humidity}%</strong>
+                        <strong>{(Math.round(Device.data.Humidity * 100 ) / 100) }%</strong>
                       </div>
                       <div className="device-stats">
                         <LightModeIcon style={{ color: "yellow", height: 20 }} />
-                        <strong>{data.light.lightlevel}</strong>
+                        <strong>{Device.data.LightLevel}</strong>
                       </div>
                    
                     
                       <div className="device-stats">
                         <DeviceThermostatIcon 
                           style={{ 
-                            color: data.temp.temperature > 22 ? "red" : "lightgreen", 
+                            color: Device.data.Temperature > 22 ? "red" : "lightgreen", 
                             height: 20 
                           }} 
                         />
 
                         <strong>
-                          {formatTemperature(data.temp.temperature, Device.IsFahrenheit)}{" "}
+                          {formatTemperature((Math.round(Device.data.Temperature * 100 )  / 100) , Device.IsFahrenheit)}{" "}
                           {Device.IsFahrenheit ? "F" : "C"}&#176;
                         </strong>
                       </div>
@@ -217,6 +309,7 @@ function MainPage() {
                       
                   </div>
                 </div>
+
 
                 {!unverified && (
                   <div className="dropdown_button_conainer">
@@ -250,7 +343,7 @@ function MainPage() {
                     <div className="form-group" style={{ textAlign: "left" }}>
 
                       <p >
-                        <strong style={{color: "#d60015"}}>Device not activated!! </strong><br/> Activate the device to allow it to upload to the temperature data to the database.
+                        <strong style={{color: "#d60015"}}>Device Not Activated! </strong><br/>Activate your device to enable database access.
                        
                       </p>
                       <input type="submit" value="Activate Device"/>
@@ -259,6 +352,34 @@ function MainPage() {
 
                   {!unverified && (
                     <>
+
+
+                      <div className="form-group">
+                        <label htmlFor="nameInput">Name</label>
+                        <input
+                          id="nameInput"
+                          type="text"
+                          min={1}
+                          value={Device.DeviceName}
+                          onChange={(e) => updateValue(Device.DeviceID, "DeviceName", e.target.value)}
+                        />
+                      </div>
+
+                      <div className="form-group checkbox-group">
+                        <label htmlFor="uiColor">Interface Color</label>
+                        <input
+                          id="uiColor"
+                          type="color"
+                          value={rgb565ToHex(Device.DisplayColor)} // convert decimal to #RRGGBB
+                          onChange={(e) => updateValue(
+                            Device.DeviceID,
+                            "DisplayColor",
+                            hexToRGB565(e.target.value) // convert #RRGGBB → RGB565 decimal
+                          )}
+                        />
+
+                      </div>
+
                       <div className="form-group">
                         <label htmlFor="location">Location</label>
                         <select
@@ -275,7 +396,7 @@ function MainPage() {
                       </div>
 
                       <div className="form-group">
-                        <label htmlFor="lightInterval">Light Interval</label>
+                        <label htmlFor="lightInterval">Light Upload Interval (Min)</label>
                         <input
                           id="lightInterval"
                           type="number"
@@ -286,7 +407,7 @@ function MainPage() {
                       </div>
 
                       <div className="form-group">
-                        <label htmlFor="temperatureInterval">Temperature Interval</label>
+                        <label htmlFor="temperatureInterval">Temperature Upload Interval (Min)</label>
                         <input
                           id="temperatureInterval"
                           type="number"
@@ -309,9 +430,9 @@ function MainPage() {
                           }
                         />
                       </div>
-
+          
                       <div className="submit-container">
-                        <input type="submit" value="Save" />
+                        <input type="submit" value="Apply" />
                       </div>
                     </>
                   )}
@@ -321,6 +442,7 @@ function MainPage() {
           );
         })}
       </ul>
+      </div>
     </div>
   );
 }
