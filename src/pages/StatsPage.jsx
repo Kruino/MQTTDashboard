@@ -5,13 +5,30 @@ import { LineChart } from '@mui/x-charts/LineChart';
 function StatsPage() {
   const [temps, setTemps] = useState([]);
   const [light, setLight] = useState([]);
+  const [location, setLocation] = useState();
+  const [mins, setMins] = useState(20);
 
+  const [locations, setLocations] = useState([]);
+  
 
-
+  //Get all location when opening page.
+  useEffect(() => {
+    fetch("http://192.168.1.131:3000/locations")
+      .then((res) => res.json())
+      .then((json) => {
+        setLocations(json)
+        setLocation(json[0].id)
+ 
+      })
+      .catch((err) => console.error("Error loading JSON:", err));
+  }, []);
 
   
 useEffect(() => {
-  fetch("http://localhost:3000/data/temperature?LocationID=7", {
+
+  if (!location) return; 
+
+  fetch("http://192.168.1.131:3000/data/temperature?LocationID=" + location, {
     method: "GET",
     headers: {
       "Content-Type": "application/json; charset=UTF-8",
@@ -29,45 +46,58 @@ useEffect(() => {
       }
     })
     .catch((err) => console.error(err));
-}, []);
+}, [location]);
 
 
 const lessThanMiliAgo = (date, mili) => {
-    const HOUR = 1000 * 60 * 60;
-    const anHourAgo = Date.now() - HOUR;
+    const anHourAgo = Date.now() - mili;
 
     return date > anHourAgo;
 }
+
 const dataset = useMemo(() => {
-    
-    var currentdate = new Date();
+  return temps
+    .map((t) => {
+      const date = new Date(t.created_at).getTime();
+      if (!lessThanMiliAgo(date, mins * 60 * 1000)) return null;
+
+      return {
+        date,
+        temperature: t.temp ? Number(t.temp) : null,
+        humidity: t.humidity ? Number(t.humidity) : null,
+      };
+    })
+    .filter((d) => d && d.date != null) 
+    .sort((a, b) => a.date - b.date);
+}, [temps, mins]);
 
 
-    return temps
-      .map((t) => {
-        var date = new Date(t.date).getTime();
-        if (lessThanMiliAgo(date, 600000)){
-            return null;
-        }
-        
-        return ({
-        date: t.date ? new Date(t.date).getTime() : null,
-        temperature:
-          t.temperature === null || t.temperature === undefined || t.temperature === ''
-            ? null
-            : Number(t.temperature),
-        humditity:  t.humidity === null || t.humidity === undefined || t.humidity === ''
-            ? null
-            : Number(t.humidity),
-      })})
-      .filter((d) => d != null && d.date != null && d.temperature != null)
-      .sort((a, b) => a.date - b.date);
-  }, [temps]);
 
 
   return (
-    <div style={{width: "100%", height: "100%", display:"flex", justifyContent: "center", alignItems: "center"}}>
-           <div className="header dt-background" style={{minWidth: 700, width: 1000}}>
+    <div style={{width: "100%", display:"flex", justifyContent: "center", alignItems: "center", marginTop: 5}}>
+           <div className="header dt-background" style={{minWidth: 700, width: 1000, display: 'flex', flexDirection: 'column'}}>
+        <div style={{display: "flex", justifyContent: "space-between", width: "100%"}}>
+          <div>
+            <label htmlFor='location'>Location</label>
+            <select value={location} onChange={(e) => setLocation(Number(e.target.value))}>
+                  {locations.map((x) => (
+                    <option key={x.id} value={x.id}>
+                      {x.name}
+                    </option>
+                  ))}
+              
+            </select>
+          </div>
+          <div>
+             Last:
+            <input type='number' style={{width: 75}} value={mins} onChange={(e) => setMins(e.target.value)}/>
+            min
+          </div>
+         
+        </div>
+      
+      
       <LineChart
      sx={{
             '.MuiChartsAxis-tickLabel': { fill: 'white' }, // white axis labels
@@ -79,24 +109,31 @@ const dataset = useMemo(() => {
           {
             dataKey: 'date',            // field name in dataset for X
             scaleType: 'time',
-            valueFormatter: (ms) => new Date(ms).toLocaleString(), // format tick
+             valueFormatter: (ms) =>
+              new Date(ms).toLocaleTimeString('da-DK', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+              }), // format tick
           },
         ]}
-        series={[
+      series={[
           {
-            dataKey: 'temperature',     // field name in dataset for Y
+            dataKey: 'temperature',
             label: 'Temperature (°C)',
             color: "#892be28c",
-            valueFormatter: (v) => (v == null ? '' : v.toFixed(1)),
+            valueFormatter: (v) => (v == null ? '' : v.toFixed(2)),
           },
-            {
-            dataKey: 'humditity',     // field name in dataset for Y
+          {
+            dataKey: 'humidity', 
             label: 'Humidity (%)',
             color: "#2b99e28c",
-            valueFormatter: (v) => (v == null ? '' : v.toFixed(1)),
+            valueFormatter: (v) => (v == null ? '' : v.toFixed(2)),
           },
         ]}
+
         height={300}
+        width={950}
       />
       </div>
      

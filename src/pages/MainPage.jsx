@@ -183,7 +183,7 @@ useEffect(() => {
 
     // // Handle different topics
 if (topic === "device/Update") {
-  console.log("test");
+
   fetch(`http://192.168.1.131:3000/device/verify`, {
     method: "POST",
     body: JSON.stringify({ DeviceID: message.DeviceID }),
@@ -236,12 +236,12 @@ if (topic === "device/Update") {
 
 
       <div>
-        <div>
-            <form onSubmit={(e) => {
+        <div className="device-list" style={{marginTop: 5, alignSelf: "center"}}>
+            <form className="device-card"  onSubmit={(e) => {
               e.preventDefault();
 
               createLocation()
-            }}>
+            }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: 25}} >
               <label htmlFor="nameInput">Location Name</label>
               <input id="Location-Name" key={"locationName"}/>
 
@@ -277,7 +277,7 @@ if (topic === "device/Update") {
                   <div className="device-stats">
                       <div className="device-stats">
                         <WaterDropIcon style={{ color: "lightblue", height: 20 }} />
-                        <strong>{(Math.round(Device.data.Humidity * 100 ) / 100) }%</strong>
+                        <strong>{Device.data.Humidity.toFixed(2) }%</strong>
                       </div>
                       <div className="device-stats">
                         <LightModeIcon style={{ color: "yellow", height: 20 }} />
@@ -294,7 +294,7 @@ if (topic === "device/Update") {
                         />
 
                         <strong>
-                          {formatTemperature((Math.round(Device.data.Temperature * 100 )  / 100) , Device.IsFahrenheit)}{" "}
+                          {formatTemperature(Device.data.Temperature , Device.IsFahrenheit).toFixed(2)}{" "}
                           {Device.IsFahrenheit ? "F" : "C"}&#176;
                         </strong>
                       </div>

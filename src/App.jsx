@@ -1,6 +1,7 @@
 
 import React from 'react';
 import {useEffect, useState} from "react";
+import { NavLink } from "react-router";
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { parseJwt } from "./utils/jwt";
 import LoginPage from './pages/LoginPage';
@@ -49,16 +50,27 @@ useEffect(() => {
   
 
    return (
-    <div style={{width: "100%", height: "100%"}}>
+  
+
+   
+
+         <Router>
+  <div style={{width: "100%", height: "100%"}}>
       <div className="header dt-background">
         <h3>Hello {username}!</h3>
+
+         <nav style={{display: "flex", gap: 15}}>
+            <NavLink to="/stats">Data</NavLink>
+            <NavLink to="/dashboard">Dashboard</NavLink>
+        </nav>
+
         <div style={{display: "flex", gap: 5}}>
 
           <button onClick={handleLogout}>Logout</button>
         </div>
-
+       
       </div>
-         <Router>
+            
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route
@@ -80,8 +92,9 @@ useEffect(() => {
         />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+         </div>
     </Router>
-    </div>
+ 
  
   );
 }
