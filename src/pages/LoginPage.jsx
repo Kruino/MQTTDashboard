@@ -1,28 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios'; // or fetch
+import axios from 'axios';
 
 function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
+  //login function called on login click
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
 
     try {
-      const response = await axios.post('http://localhost:3000/login', {
+      const response = await axios.post('http://192.168.1.131:3000/login', {
         username,
         password,
       });
 
-      const token = response.data.token; // adjust based on your API response
+      const token = response.data.token; // token from response
       // Store the token in localStorage
       localStorage.setItem('authToken', token);
 
-      // Optionally, redirect or update app state
-      console.log('Login successful, token saved!');
 
+      console.log('Login successful, token saved!');
+      // redirect to base page
       window.location.href = "/"
 
     } catch (err) {

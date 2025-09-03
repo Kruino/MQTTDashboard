@@ -1,12 +1,15 @@
-# React + Vite
+# React + Vite MQTT/ws dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Dashboard using websockets and api calls to work with MQTT broker and api. To verify and unverify device and get device updates from MQTT.
 
-Currently, two official plugins are available:
+# User Guide
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## Expanding the ESLint configuration
+## Path /Dashboard
+Clients will show up here if they are online. When you first open the page the dashboard will ping the MQTT broker and request devices to send their settings. On this page you can see the current temperature data and settings from the devices. you can open the dropdown on each device to change settings like ui color, Temperature/light upload times, device name etc. You can also create locations on this page
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+## Path /Stats
+This page will show data and you can change which location it shows. 
+
+

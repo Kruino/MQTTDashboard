@@ -7,9 +7,6 @@ import DeviceThermostatIcon from '@mui/icons-material/DeviceThermostat';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import RemoveModeratorIcon from '@mui/icons-material/RemoveModerator';
 
-
-import { parseJwt } from "../utils/jwt";
-
 import "../App.css";
 
 function MainPage() {
@@ -19,27 +16,19 @@ function MainPage() {
   const [openDevices, setOpenDevices] = useState({});
 
   const clientRef = useRef(null);
-  const [locationName, setLocationName]  = useState("");
 
   
 
-
+  //Get all location when opening page.
   useEffect(() => {
-    fetch("http://localhost:3000/locations")
+    fetch("http://192.168.1.131:3000/locations")
       .then((res) => res.json())
       .then((json) => setLocations(json))
       .catch((err) => console.error("Error loading JSON:", err));
   }, []);
 
-  const mqttSettings = {
-    clientId: "test2",
-    username: "mosquitto",
-    password: "mosquitto123",
-    keepalive: 1,
-    clean: false,
-    reconnectPeriod: 1000,
-  };
 
+  //Updates value in usestate when user input changes it.
   const updateValue = (DeviceID, key, value) => {
     setDevices((prev) =>
       prev.map((d) =>
@@ -50,6 +39,7 @@ function MainPage() {
     );
   };
 
+  //Sends updated settings to device
   const applyChanges = (device) => {
     console.log(device);
     const json = JSON.stringify({
@@ -61,9 +51,10 @@ function MainPage() {
     clientRef.current.send(json);
   };
 
+  //Authorizes a device
   const verifyDevice = (device) => {
     if (confirm(`Are you sure you want to verify device (${device.DeviceID})?`)) {
-      fetch("http://localhost:3000/device", {
+      fetch("http://192.168.1.131:3000/device", {
         method: "POST",
         body: JSON.stringify({ DeviceID: device.DeviceID, LocationID: device.Location }),
         headers: {
@@ -88,9 +79,10 @@ function MainPage() {
     }
   };
 
-    const unverifyDevice = (device) => {
+  //Unauthorizes a device
+  const unverifyDevice = (device) => {
     if (confirm(`Are you sure you want to unverify device (${device.DeviceID})?`)) {
-      fetch("http://localhost:3000/device/unverify", {
+      fetch("http://192.168.1.131:3000/device/unverify", {
         method: "POST",
         body: JSON.stringify({ DeviceID: device.DeviceID }),
         headers: {
@@ -115,14 +107,14 @@ function MainPage() {
     }
   };
 
-
+  //Creates a new location
   const createLocation = async () => {
     var input = document.getElementById("Location-Name");
     if(input.value == null || input.value == "")
       return;
 
     if (confirm(`Are you sure you want to create location (${input.value})?`)) {
-      fetch("http://localhost:3000/locations", {
+      fetch("http://192.168.1.131:3000/locations", {
         method: "POST",
         body: JSON.stringify({ name: input.value }),
         headers: {
@@ -140,12 +132,11 @@ function MainPage() {
     }
 
   };
-
+  //Converts a HEX value to something more digestible for a M5Go LCD
   const hexToRGB565 = (hex) => {
     // Remove the leading #
     hex = hex.replace(/^#/, '');
 
-    // Parse R, G, B (0–255)
     let r = parseInt(hex.substring(0, 2), 16);
     let g = parseInt(hex.substring(2, 4), 16);
     let b = parseInt(hex.substring(4, 6), 16);
@@ -157,29 +148,31 @@ function MainPage() {
     return "0x" + rgb565.toString(16).padStart(4, "0").toUpperCase();
   }
 
+  //Converts a rgb value to hex for the interface
 const rgb565ToHex = (rgb565) =>  {
   const r = ((rgb565 >> 11) & 0x1F) << 3;
   const g = ((rgb565 >> 5) & 0x3F) << 2;
   const b = (rgb565 & 0x1F) << 3;
-  // Return #RRGGBB string
   return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
 }
 
-  const formatTemperature = (temp, isFahrenheit) =>
+//formats temperature based on if the devices is set to fahrenheit or celsius.
+const formatTemperature = (temp, isFahrenheit) =>
     isFahrenheit ? (temp * 9) / 5 + 32 : temp;
 
   useEffect(() => {
     document.title = 'Dashboard';
   }, []);
 
+  //connects to websocket.
 useEffect(() => {
   const token = localStorage.getItem("authToken"); // JWT from login
-  const ws = new WebSocket(`ws://localhost:3000?token=${token}`);
+  const ws = new WebSocket(`ws://192.168.1.131:3000?token=${token}`);
   clientRef.current = ws;
 
   ws.onopen = () => {
     console.log("Connected to WS server");
-
+    //When connected to websocket at first. Ping devices to send update request.
     ws.send('{"Topic": "device/Update/request", "Msg": "ping"}')
   };
 
@@ -191,7 +184,7 @@ useEffect(() => {
     // // Handle different topics
 if (topic === "device/Update") {
   console.log("test");
-  fetch(`http://localhost:3000/device/verify`, {
+  fetch(`http://192.168.1.131:3000/device/verify`, {
     method: "POST",
     body: JSON.stringify({ DeviceID: message.DeviceID }),
     headers: {

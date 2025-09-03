@@ -6,10 +6,12 @@ import { parseJwt } from "./utils/jwt";
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './ProtectedRoute';
 import MainPage from './pages/MainPage'; // protected page
-import StatsPage from './pages/StatsPage';
+import StatsPage from './pages/StatsPage'; // protected page
 
 function App() {
       const [username, setUsername] = useState(null);
+
+      //Keeps track of time to log user out when an expiration of token has passed
 useEffect(() => {
     const token = localStorage.getItem("authToken");
     if (token && window.location != "/login") {
