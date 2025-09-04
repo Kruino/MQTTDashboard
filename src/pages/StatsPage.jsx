@@ -107,14 +107,10 @@ const dataset = useMemo(() => {
         dataset={dataset}
         xAxis={[
           {
-            dataKey: 'date',            // field name in dataset for X
+            dataKey: 'date',     
             scaleType: 'time',
              valueFormatter: (ms) =>
-              new Date(ms).toLocaleTimeString('da-DK', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-              }), // format tick
+              new Date(ms).toLocaleString('da-DK') 
           },
         ]}
       series={[
