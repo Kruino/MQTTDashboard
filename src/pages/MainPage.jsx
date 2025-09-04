@@ -181,6 +181,22 @@ useEffect(() => {
 
     console.log("WS message:", topic, message);
 
+    if(topic === "device/Alarm/On"){
+      if (confirm(`Device went into alarm DeviceID ${message.DeviceID}, Turn off the alarm?`)) {
+          const json = JSON.stringify({
+            Topic: message.DeviceID + "/Alarm/Off",
+            Msg: "ping"
+          });
+
+        
+        
+          ws.send(json)
+      }
+    }
+
+    if(topic === "device/Alarm/Off"){
+      
+    }
     // // Handle different topics
 if (topic === "device/Update") {
 
@@ -270,10 +286,25 @@ if (topic === "device/Update") {
                          <button onClick={() => {
                         unverifyDevice(Device);
                     }} style={{padding: 5, background: "#a60707"}}><RemoveModeratorIcon /></button>
-                    <h3>{Device.DeviceName}</h3>
+                    <h3>{Device.Name}</h3>
                     <strong className="device-id">Device ID: {Device.DeviceID}</strong>
                   </div>
-                  
+                   <div className="device-stats">
+                       <button onClick={() => {
+                        const json = JSON.stringify({
+                          Topic: Device.DeviceID + "/Alarm/On",
+                          Msg: "ping"
+                        });
+                      clientRef.current.send(json)
+                    }} style={{padding: 5, background: "#a60707"}}>Start Alarm</button>
+                    <button onClick={() => {
+                        const json = JSON.stringify({
+                          Topic: Device.DeviceID + "/Alarm/Off",
+                          Msg: "ping"
+                        });
+                      clientRef.current.send(json)
+                    }} style={{padding: 5, background: "#ebb734"}}>Stop Alarm</button>
+                   </div>
                   <div className="device-stats">
                       <div className="device-stats">
                         <WaterDropIcon style={{ color: "lightblue", height: 20 }} />
@@ -294,7 +325,7 @@ if (topic === "device/Update") {
                         />
 
                         <strong>
-                          {formatTemperature(Device.data.Temperature , Device.IsFahrenheit).toFixed(2)}{" "}
+                          {formatTemperature(Device.data.temp , Device.IsFahrenheit).toFixed(2)}{" "}
                           {Device.IsFahrenheit ? "F" : "C"}&#176;
                         </strong>
                       </div>
@@ -353,8 +384,8 @@ if (topic === "device/Update") {
                           id="nameInput"
                           type="text"
                           min={1}
-                          value={Device.DeviceName}
-                          onChange={(e) => updateValue(Device.DeviceID, "DeviceName", e.target.value)}
+                          value={Device.Name}
+                          onChange={(e) => updateValue(Device.DeviceID, "Name", e.target.value)}
                         />
                       </div>
 
@@ -405,10 +436,21 @@ if (topic === "device/Update") {
                           id="temperatureInterval"
                           type="number"
                           min={1}
-                          value={Device.TemperatureTime}
+                          value={Device.TempTime}
                           onChange={(e) =>
-                            updateValue(Device.DeviceID, "TemperatureTime", e.target.value)
+                            updateValue(Device.DeviceID, "TempTime", e.target.value)
                           }
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="maxtemp">Max temperature (Celcius)</label>
+                        <input
+                          id="maxtemp"
+                          type="number"
+                          min={1}
+                          value={Device.MaxTemp}
+                          onChange={(e) => updateValue(Device.DeviceID, "MaxTemp", e.target.value)}
                         />
                       </div>
 
@@ -424,6 +466,8 @@ if (topic === "device/Update") {
                         />
                       </div>
           
+
+
                       <div className="submit-container">
                         <input type="submit" value="Apply" />
                       </div>

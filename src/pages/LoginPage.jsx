@@ -37,7 +37,7 @@ function LoginPage() {
   }, []);
 
   return (
-    <div style={{width: "100%", height: "100%", display:"flex", justifyContent: "center", alignItems: "center"}}>
+    <div style={{width: "100%", display:"flex", justifyContent: "center", alignItems: "center", marginTop: 5}}>
     <div className='dt-background' style={{maxWidth: '400px', padding: 25, margin: 'auto', }}>
       <h2>Login</h2>
       <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", maxWidth: '400px', padding: 25, margin: 'auto', gap: 5 }}>
